@@ -16,6 +16,7 @@ import { ErrorHandler } from "../utils/utility.js";
 // Create a new user and save it to the database and save token in cookie
 const newUser = TryCatch(async (req, res, next) => {
   const { name, username, password, bio } = req.body;
+
   const file = req.file;
 
   if (!file) return next(new ErrorHandler("Please Upload Avatar"));
@@ -23,9 +24,10 @@ const newUser = TryCatch(async (req, res, next) => {
   const result = await uploadFilesToCloudinary([file]);
 
   const avatar = {
-    public_id: "result[0].public_id",
-    url: "result[0].url",
+    public_id: result[0].public_id,
+    url: result[0].url,
   };
+
   const user = await User.create({
     name,
     bio,
@@ -76,21 +78,20 @@ const logout = TryCatch(async (req, res) => {
 
 const searchUser = TryCatch(async (req, res) => {
   const { name = "" } = req.query;
+
   // Finding All my chats
   const myChats = await Chat.find({ groupChat: false, members: req.user });
 
   //  extracting All Users from my chats means friends or people I have chatted with
   const allUsersFromMyChats = myChats.flatMap((chat) => chat.members);
-  console.log(allUsersFromMyChats);
+
   // Finding all users except me and my friends
   const allUsersExceptMeAndFriends = await User.find({
-    _id: { $nin: allUsersFromMyChats||[] },
+    _id: { $nin: allUsersFromMyChats },
     name: { $regex: name, $options: "i" },
   });
-  const testuser=await User.find({name: { $regex: name, $options: "i" }})
 
   // Modifying the response
-  console.log(allUsersExceptMeAndFriends);
   const users = allUsersExceptMeAndFriends.map(({ _id, name, avatar }) => ({
     _id,
     name,
@@ -100,7 +101,6 @@ const searchUser = TryCatch(async (req, res) => {
   return res.status(200).json({
     success: true,
     users,
-    testuser
   });
 });
 

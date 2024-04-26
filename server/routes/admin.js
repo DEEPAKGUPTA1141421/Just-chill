@@ -1,31 +1,32 @@
 import express from "express";
-import { isAuthenticated } from "../middlewares/auth.js";
 import {
-    adminLogin,
-    adminLogout,
-    allChats,
-    allMessages,
-    allUsers,
-    getAdminData,
-    getDashboardStats,
-  } from "../controllers/admin.js";
-  import { adminLoginValidator,validateHandler} from "../lib/validators.js";
-const adminRoutes = express.Router();
-adminRoutes.post("/verify", adminLoginValidator(), validateHandler, adminLogin);
+  adminLogin,
+  adminLogout,
+  allChats,
+  allMessages,
+  allUsers,
+  getAdminData,
+  getDashboardStats,
+} from "../controllers/admin.js";
+import { adminLoginValidator, validateHandler } from "../lib/validators.js";
+import { adminOnly } from "../middlewares/auth.js";
 
-adminRoutes.get("/logout", adminLogout);
+const app = express.Router();
+
+app.post("/verify", adminLoginValidator(), validateHandler, adminLogin);
+
+app.get("/logout", adminLogout);
 
 // Only Admin Can Accecss these Routes
 
-//adminRoutes.use(adminOnly);
+app.use(adminOnly);
 
-adminRoutes.get("/", getAdminData);
+app.get("/", getAdminData);
 
-adminRoutes.get("/users", allUsers);
-adminRoutes.get("/chats", allChats);
-adminRoutes.get("/messages", allMessages);
+app.get("/users", allUsers);
+app.get("/chats", allChats);
+app.get("/messages", allMessages);
 
-adminRoutes.get("/stats", getDashboardStats);
+app.get("/stats", getDashboardStats);
 
-
-export default adminRoutes;
+export default app;

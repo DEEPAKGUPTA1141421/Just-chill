@@ -1,32 +1,56 @@
 import express from "express";
-import { acceptFriendRequest, getMyFriends, getMyNotifications, getMyProfile, login, logout, newUser, searchUser, sendFriendRequest } from "../controllers/user.js";
-import { singleAvatar } from "../middlewares/multer.js";
+import {
+  acceptFriendRequest,
+  getMyFriends,
+  getMyNotifications,
+  getMyProfile,
+  login,
+  logout,
+  newUser,
+  searchUser,
+  sendFriendRequest,
+} from "../controllers/user.js";
+import {
+  acceptRequestValidator,
+  loginValidator,
+  registerValidator,
+  sendRequestValidator,
+  validateHandler,
+} from "../lib/validators.js";
 import { isAuthenticated } from "../middlewares/auth.js";
-import { acceptRequestValidator, loginValidator, registerValidator, sendRequestValidator, validateHandler } from "../lib/validators.js";
-const userRouter = express.Router(); 
-userRouter.post("/login",loginValidator(),validateHandler,login);
-userRouter.post("/new",singleAvatar,registerValidator(),validateHandler,newUser);
-userRouter.use(isAuthenticated);
-userRouter.get("/getprofile",getMyProfile);
-userRouter.get("/logout",logout);
-userRouter.get("/search", searchUser);
-userRouter.get("/sendrequest",sendRequestValidator(),validateHandler,sendFriendRequest);
+import { singleAvatar } from "../middlewares/multer.js";
 
-// app.put(
-//   "/sendrequest",
-//   sendRequestValidator(),
-//   validateHandler,
-//   sendFriendRequest
-// );
+const app = express.Router();
 
-userRouter.put(
+app.post("/new", singleAvatar, registerValidator(), validateHandler, newUser);
+app.post("/login", loginValidator(), validateHandler, login);
+
+// After here user must be logged in to access the routes
+
+app.use(isAuthenticated);
+
+app.get("/me", getMyProfile);
+
+app.get("/logout", logout);
+
+app.get("/search", searchUser);
+
+app.put(
+  "/sendrequest",
+  sendRequestValidator(),
+  validateHandler,
+  sendFriendRequest
+);
+
+app.put(
   "/acceptrequest",
   acceptRequestValidator(),
   validateHandler,
   acceptFriendRequest
 );
 
- userRouter.get("/notifications", getMyNotifications);
+app.get("/notifications", getMyNotifications);
 
- userRouter.get("/friends", getMyFriends);
-export default userRouter; 
+app.get("/friends", getMyFriends);
+
+export default app;

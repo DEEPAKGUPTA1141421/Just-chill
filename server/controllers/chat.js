@@ -1,31 +1,24 @@
 import { TryCatch } from "../middlewares/error.js";
 import { ErrorHandler } from "../utils/utility.js";
 import { Chat } from "../models/chat.js";
-// import {
-//   deletFilesFromCloudinary,
-//   emitEvent,
-//   uploadFilesToCloudinary,
-// } from "../utils/features.js";
-// import {
-//   ALERT,
-//   NEW_MESSAGE,
-//   NEW_MESSAGE_ALERT,
-//   REFETCH_CHATS,
-// } from "../constants/events.js";
-// import { getOtherMember } from "../lib/helper.js";
+import {
+  deletFilesFromCloudinary,
+  emitEvent,
+  uploadFilesToCloudinary,
+} from "../utils/features.js";
+import {
+  ALERT,
+  NEW_MESSAGE,
+  NEW_MESSAGE_ALERT,
+  REFETCH_CHATS,
+} from "../constants/events.js";
+import { getOtherMember } from "../lib/helper.js";
 import { User } from "../models/user.js";
 import { Message } from "../models/message.js";
-import { deletFilesFromCloudinary, emitEvent } from "../utils/features.js";
-import { ALERT, NEW_ATTACHMENT, NEW_MESSAGE_ALERT, REFETCH_CHATS } from "../constants/events.js";
-import { getOtherMember } from "../lib/helper.js";
 
 const newGroupChat = TryCatch(async (req, res, next) => {
   const { name, members } = req.body;
-  if( members.length<2){
-    return next(
-        new ErrorHandler("Group chat must have atleast 3 members",400)
-    )
-  }
+
   const allMembers = [...members, req.user];
 
   await Chat.create({
@@ -35,8 +28,9 @@ const newGroupChat = TryCatch(async (req, res, next) => {
     members: allMembers,
   });
 
-   emitEvent(req, ALERT, allMembers, `Welcome to ${name} group`);
-   emitEvent(req, REFETCH_CHATS, members);
+  emitEvent(req, ALERT, allMembers, `Welcome to ${name} group`);
+  emitEvent(req, REFETCH_CHATS, members);
+
   return res.status(201).json({
     success: true,
     message: "Group Created",
@@ -44,28 +38,35 @@ const newGroupChat = TryCatch(async (req, res, next) => {
 });
 
 const getMyChats = TryCatch(async (req, res, next) => {
-  const chats = await Chat.find({ members: req.user }).populate("members", "name avatar");
-  const transformedChats=chats.map(({_id,name,members,groupChat})=>{
-    const otherMember=getOtherMember(members,req.user);
+  const chats = await Chat.find({ members: req.user }).populate(
+    "members",
+    "name avatar"
+  );
+
+  const transformedChats = chats.map(({ _id, name, members, groupChat }) => {
+    const otherMember = getOtherMember(members, req.user);
+
     return {
       _id,
       groupChat,
-      avatar:groupChat?members.slice(0,3).map(({avatar})=>avatar.url):[otherMember.avatar.url],
-      name:groupChat?name:otherMember.name,
-      members:members.reduce((prev,curr)=>{
-        if(curr._id.toString()!=req.user.toString()){
+      avatar: groupChat
+        ? members.slice(0, 3).map(({ avatar }) => avatar.url)
+        : [otherMember.avatar.url],
+      name: groupChat ? name : otherMember.name,
+      members: members.reduce((prev, curr) => {
+        if (curr._id.toString() !== req.user.toString()) {
           prev.push(curr._id);
         }
         return prev;
-      },[])
-    }
-  })
-  return res.status(201).json({
-    success:true,
-    chats:transformedChats
-  })
-  }
-)
+      }, []),
+    };
+  });
+
+  return res.status(200).json({
+    success: true,
+    chats: transformedChats,
+  });
+});
 
 const getMyGroups = TryCatch(async (req, res, next) => {
   const chats = await Chat.find({
@@ -89,9 +90,7 @@ const getMyGroups = TryCatch(async (req, res, next) => {
 
 const addMembers = TryCatch(async (req, res, next) => {
   const { chatId, members } = req.body;
-  if(!members||members.length<1){
-    return next(new ErrorHandler("Please Provide members",400));
-  }
+
   const chat = await Chat.findById(chatId);
 
   if (!chat) return next(new ErrorHandler("Chat not found", 404));
@@ -174,7 +173,7 @@ const removeMember = TryCatch(async (req, res, next) => {
   });
 });
 
- const leaveGroup = TryCatch(async (req, res, next) => {
+const leaveGroup = TryCatch(async (req, res, next) => {
   const chatId = req.params.id;
 
   const chat = await Chat.findById(chatId);
@@ -237,8 +236,7 @@ const sendAttachments = TryCatch(async (req, res, next) => {
     return next(new ErrorHandler("Please provide attachments", 400));
 
   //   Upload files here
-  // const attachments = await uploadFilesToCloudinary(files);
-  const attachments =[];
+  const attachments = await uploadFilesToCloudinary(files);
 
   const messageForDB = {
     content: "",
@@ -257,7 +255,7 @@ const sendAttachments = TryCatch(async (req, res, next) => {
 
   const message = await Message.create(messageForDB);
 
-  emitEvent(req, NEW_ATTACHMENT, chat.members, {
+  emitEvent(req, NEW_MESSAGE, chat.members, {
     message: messageForRealTime,
     chatId,
   });
@@ -411,14 +409,14 @@ const getMessages = TryCatch(async (req, res, next) => {
 
 export {
   newGroupChat,
-   getMyChats,
-   getMyGroups,
+  getMyChats,
+  getMyGroups,
   addMembers,
   removeMember,
-   leaveGroup,
-   sendAttachments,
-   getChatDetails,
-   renameGroup,
-   deleteChat,
-   getMessages,
+  leaveGroup,
+  sendAttachments,
+  getChatDetails,
+  renameGroup,
+  deleteChat,
+  getMessages,
 };
